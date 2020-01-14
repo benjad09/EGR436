@@ -1,5 +1,5 @@
 #include "msp.h"
-#include "UART.h"
+#include "myUART.h"
 #include "Timer.h"
 #include "App.h"
 
@@ -12,21 +12,21 @@ uint16_t bpm;
 
 void main(void)
 {
-	WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD;		// stop watchdog timer
+    WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD;     // stop watchdog timer
 
-	InitComms();
-	Init_SYSTICK();
-	InitApp();
+    InitComms();
+    Init_SYSTICK();
+    InitApp();
     __enable_irq();//enable interrupts
     __enable_interrupts();
 
     DebugPrint("hello world\r\n");
 
 
-	while(1)
-	{
-	    HandleComms();
-	    HandleDebug();
-	    HandleApp();
-	}
+    while(1)
+    {
+        HandleComms();
+        HandleDebug();
+        HandleApp();
+    }
 }

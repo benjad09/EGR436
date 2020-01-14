@@ -5,77 +5,65 @@
  *      Author: bendr
  */
 
-
-#include "UART.h"
+#include "myUART.h"
 #include "APP.h"
 #include "msp.h"
-
-
+#include "stdio.h"
+#include "stdlib.h"
 
 static struct
 {
-  struct
+  struct            // Define structure for receive buffer
   {
     uint32_t head;
     uint32_t tail;
     char buf[RX_BUF_N];
   } rx;
-  struct
+  struct            // Define structure for transmit buffer
   {
     uint32_t head;
     uint32_t tail;
     char buf[TX_BUF_N];
   } tx;
-  struct
+  struct            // Define structure for byte-parsing structure
   {
     uint8_t nBytes;
     char buf[MAX_PARSE_BYTES];
   } parse;
 } com;
 
-/////////////////////////////////   Functions  ////////////////////////////////
+// Function prototypes
 static void UpdateRxTx( void );
 static void ParseRxData( void );
 
-
 void InitComms( void )
 {
-
-
     com.rx.head = 0;
     com.rx.tail = 0;
     com.tx.head = 0;
     com.tx.tail = 0;
     com.parse.nBytes = 1;
 
-    P1->SEL0 |=  (BIT2 | BIT3); // P1.2 and P1.3 are EUSCI_A0 RX
-    P1->SEL1 &= ~(BIT2 | BIT3); // and TX respectively.
+    P1->SEL0 |=  (BIT2 | BIT3);     // P1.2 and P1.3 are EUSCI_A0 RX
+    P1->SEL1 &= ~(BIT2 | BIT3);     // and TX respectively.
 
-    EUSCI_A0->CTLW0  = BIT0; // Disables EUSCI. Default configuration is 8N1
-    EUSCI_A0->CTLW0 |= BIT7; // Connects to SMCLK BIT[7:6] = 10
-    EUSCI_A0->CTLW0 |= BIT(11);  //BIT15 = Parity, BIT14 = Even, BIT11 = Two Stop Bits
-    // Baud Rate Configuration
-    // 3000000/(16*9600) = 19.531  (3 MHz at 9600 bps is fast enough to turn on over sampling (UCOS = /16))
-    //UCOS16 = 1;   //(0ver sampling, /16 turned on)
-    //UCBR  = 19 ;  //(Whole portion of the divide)
-    //UCBRF = 8.5;  // .53125 * 16 (0x0A) (Remainder of the divide)
-    //UCBRS = 0xAA; //remainder=0.531 (look up table 22-4)
+    EUSCI_A0->CTLW0  = BIT0;        // Disables EUSCI. Default configuration is 8N1
+    EUSCI_A0->CTLW0 |= BIT7;        // Connects to SMCLK BIT[7:6] = 10
+    EUSCI_A0->CTLW0 |= BIT(11);     //BIT15 = Parity, BIT14 = Even, BIT11 = Two Stop Bits
     EUSCI_A0->CTLW0 = 0x00C1;
-    //EUSCI_A0->BRW = 26;
-    EUSCI_A0->BRW = 19;  // UCBR Value from above
-    EUSCI_A0->MCTLW = 0xAA81; //UCBRS (Bits 15-8) & UCBRF (Bits 7-4) & UCOS16 (Bit 0)
+    EUSCI_A0->BRW = 19;             // UCBR Value from above
+    EUSCI_A0->MCTLW = 0xAA81;       //UCBRS (Bits 15-8) & UCBRF (Bits 7-4) & UCOS16 (Bit 0)
 
-    EUSCI_A0->CTLW0 &= ~BIT0;  // Enable EUSCI
-    EUSCI_A0->IFG &= ~BIT0;    // Clear interrupt
-    EUSCI_A0->IE |= BIT0;      // Enable interrupt
+    EUSCI_A0->CTLW0 &= ~BIT0;       // Enable EUSCI
+    EUSCI_A0->IFG &= ~BIT0;         // Clear interrupt
+    EUSCI_A0->IE |= BIT0;           // Enable interrupt
     NVIC_EnableIRQ(EUSCIA0_IRQn);
 }
 
 void HandleComms( void )
 {
-  UpdateRxTx();     //Check status of transmit and receive UART
-
-  ParseRxData();    //See if we received any messages
+  UpdateRxTx();     // Check status of transmit and receive UART
+  ParseRxData();    // See if we received any messages
 }
 
 void ParseRxData( void )
@@ -85,7 +73,6 @@ void ParseRxData( void )
     while (com.rx.head != com.rx.tail)
     {
          newByte = com.rx.buf[com.rx.tail++];
-         //sendString(&newByte,1);
 
         if (com.rx.tail > RX_BUF_N)
         {
@@ -96,11 +83,10 @@ void ParseRxData( void )
             com.parse.buf[com.parse.nBytes++] = newByte;
         }
         else
-        { //Buffer is full or got a newline/CR: check for meaningful messages
+        {   //Buffer is full or got a newline/CR: check for meaningful messages
             com.parse.nBytes = 0;
         }
     }
-
 }
 
 uint8_t reciveString(char *str){
@@ -114,30 +100,18 @@ uint8_t reciveString(char *str){
     return temp;
 }
 
-
-
 void EUSCIA0_IRQHandler(void)
 {
             do
             {
-                com.rx.buf[com.rx.head] = EUSCI_A0->RXBUF; // store the new piece of data at the present location in the buffer
-                //EUSCI_A0->IFG &= ~BIT0;
+                com.rx.buf[com.rx.head] = EUSCI_A0->RXBUF; // Store the new piece of data at the present location in the buffer
+
                 if (++com.rx.head >= RX_BUF_N)
                 {
                     com.rx.head = 0;
                 }
             }while(EUSCI_A0->IFG & BIT0);
-
-
-        //}while(bytein);
-
-    //}
 }
-
-
-
-
-//HAL_UART_ErrorCallback
 
 //Queue up a string "str" of n characters to transmit: send from main loop
 void sendString( char *str, uint32_t n)
@@ -155,10 +129,6 @@ void sendString( char *str, uint32_t n)
 
 static void UpdateRxTx( void )
 {
-
-
-
-
     if(com.tx.head != com.tx.tail)
     {
         if((EUSCI_A0->IFG & BIT1))
@@ -171,9 +141,6 @@ static void UpdateRxTx( void )
             }
         }
     }
-
-
-
 }
 
 static void usitoa4( uint16_t val, char *str )
@@ -287,6 +254,7 @@ static void usitoa5( uint16_t val, char *str )
         }
     }
 }
+
 static void usitoa2h( uint16_t val, char *str )
 {
     uint16_t pow;
@@ -374,9 +342,9 @@ static void usitoa3h( uint16_t val, char *str )
                 {
                     str[i] += 39;
                 }
-
     }
 }
+
 //Function: DebugPrint
 //Inputs: char *str - pointer to data to send; must be null-terminated
 //Outputs: none
@@ -417,7 +385,6 @@ void PrintU( const char *str, uint16_t val )
     sendString( valStr, sizeof(valStr)-1);   //Don't send null termination
 }
 
-
 //Function: PrintUs
 //Inputs:   char *str - pointer to data to send; must be null-terminated
 //          UINT8 val - value to be printed
@@ -434,7 +401,6 @@ void PrintUs( const char *str, uint16_t val )
   usitoa4( val, valStr );
   sendString( &valStr[1], sizeof(valStr)-2);  //Don't send null termination
 }
-
 
 //Function: PrintI
 //Inputs:   char *str - pointer to data to send; must be null-terminated
@@ -465,7 +431,6 @@ void PrintI( const char *str, int16_t val )
   usitoa5( uval, &valStr[1] );
   sendString( valStr, sizeof(valStr)-1);   //Don't send null termination
 }
-
 
 //Function: PrintIs
 //Inputs:   char *str - pointer to data to send; must be null-terminated
@@ -544,21 +509,13 @@ void HandleDebug( void )
     static uint8_t head=0;
     char recivebuf[16];
     uint8_t revLen = reciveString(recivebuf);
-    //if (revLen>0)
-    //{
-    //    PrintUs("\r\n",revLen);
-    //}
+
     int i = 0;
     for(i = 0;i<revLen;i++)
     {
         P1->OUT ^= BIT0;
 
         buf[head++]=recivebuf[i];
-
-        //if(head >= 16)
-        //{
-        //    head = 0;
-        //}
 
     if ((head < MAX_PARSE_BYTES) && ('\n' != buf[head-1]) && ('\r' != buf[head-1]))
     {
@@ -568,19 +525,17 @@ void HandleDebug( void )
     { //Buffer is full or got a newline/CR: check for meaningful messages
             DebugPrint( "\r\n" );
             sendString( &buf[head-1], 1 );
-            //setbpm((buf[1]-48)*100+(buf[2]-48)*10+(buf[3]-48));
             switch (buf[0])
             {
             case 'B':
                 setbpm((buf[1]-48)*100+(buf[2]-48)*10+(buf[3]-48));
-
+                break;
+            default:
+                break;
             }
-
             head = 0;
         }
 
     }
 
 }
-
-

@@ -1,3 +1,4 @@
+
 /*
  * APP.h
  *
@@ -15,6 +16,8 @@ void InitApp(void);
 void HandleApp(void);
 
 void setbpm(uint16_t val);
+void increasebpm(uint16_t val);
+void decreasebpm(uint16_t val);
 
 
 #endif /* APP_H_ */

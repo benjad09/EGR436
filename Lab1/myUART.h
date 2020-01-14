@@ -5,8 +5,8 @@
  *      Author: bendr
  */
 
-#ifndef UART_H_
-#define UART_H_
+#ifndef MYUART_H_
+#define MYUART_H_
 
 /**********************************************************
  *
@@ -50,4 +50,4 @@ void HandleDebug( void );
 
 
 
-#endif /* UART_H_ */
+#endif /* MYUART_H_ */
