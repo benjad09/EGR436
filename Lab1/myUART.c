@@ -1,10 +1,3 @@
-/*
- * UART.c
- *
- *  Created on: Jan 7, 2020
- *      Author: bendr
- */
-
 #include "myUART.h"
 #include "APP.h"
 #include "msp.h"
@@ -52,7 +45,7 @@ void InitComms( void )
     EUSCI_A0->CTLW0 |= BIT(11);     //BIT15 = Parity, BIT14 = Even, BIT11 = Two Stop Bits
     EUSCI_A0->CTLW0 = 0x00C1;
     EUSCI_A0->BRW = 19;             // UCBR Value from above
-    EUSCI_A0->MCTLW = 0xAA81;       //UCBRS (Bits 15-8) & UCBRF (Bits 7-4) & UCOS16 (Bit 0)
+    EUSCI_A0->MCTLW = 0xAA81;       // UCBRS (Bits 15-8) & UCBRF (Bits 7-4) & UCOS16 (Bit 0)
 
     EUSCI_A0->CTLW0 &= ~BIT0;       // Enable EUSCI
     EUSCI_A0->IFG &= ~BIT0;         // Clear interrupt
@@ -66,10 +59,9 @@ void HandleComms( void )
   ParseRxData();    // See if we received any messages
 }
 
-void ParseRxData( void )
+void ParseRxData( void )    // Parse data received from UART
 {
     char newByte = 'a';
-
     while (com.rx.head != com.rx.tail)
     {
          newByte = com.rx.buf[com.rx.tail++];
@@ -89,7 +81,7 @@ void ParseRxData( void )
     }
 }
 
-uint8_t reciveString(char *str){
+uint8_t reciveString(char *str){    // Receive a string from the UART
     int j=0;
     for(j=0;j<com.parse.nBytes;j++)
     {
@@ -100,7 +92,7 @@ uint8_t reciveString(char *str){
     return temp;
 }
 
-void EUSCIA0_IRQHandler(void)
+void EUSCIA0_IRQHandler(void)       // Interrupt handler for UART communications
 {
             do
             {
@@ -127,6 +119,7 @@ void sendString( char *str, uint32_t n)
   }
 }
 
+// Update the UART transmit/receive
 static void UpdateRxTx( void )
 {
     if(com.tx.head != com.tx.tail)
@@ -143,6 +136,14 @@ static void UpdateRxTx( void )
     }
 }
 
+//Function: usitoa4
+//Inputs:
+//  val:        Value to convert, range 0-65535
+//  *str:       Location to save resulting string: SIZE WILL BE 4 BYTES, 0-PADDED
+//Outputs: none
+//Description: "Unsigned Int to ASCII - 4-character"
+//Converts an unsigned integer, range 0-65535, to an ascii number string with
+//'0'-padding to 4 characters
 static void usitoa4( uint16_t val, char *str )
 {
     uint16_t pow;
@@ -202,11 +203,9 @@ static void usitoa4( uint16_t val, char *str )
 //  val:        Value to convert, range 0-65535
 //  *str:       Location to save resulting string: SIZE WILL BE 5 BYTES, 0-PADDED
 //Outputs: none
-//
 //Description: "Unsigned Int to ASCII - 5-character"
 //Converts an unsigned integer, range 0-65535, to an ascii number string with
 //'0'-padding to 5 characters
-//Stack load: 6 bytes
 static void usitoa5( uint16_t val, char *str )
 {
     uint16_t pow;
@@ -255,6 +254,7 @@ static void usitoa5( uint16_t val, char *str )
     }
 }
 
+
 static void usitoa2h( uint16_t val, char *str )
 {
     uint16_t pow;
@@ -295,7 +295,6 @@ static void usitoa2h( uint16_t val, char *str )
                 {
                     str[i] += 39;
                 }
-
     }
 }
 
@@ -535,7 +534,5 @@ void HandleDebug( void )
             }
             head = 0;
         }
-
     }
-
 }

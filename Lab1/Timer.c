@@ -1,10 +1,3 @@
-/*
- * Timer.c
- *
- *  Created on: Jan 7, 2020
- *      Author: bendr
- */
-
 #include "msp.h"
 
 uint64_t uptime;
