@@ -2,109 +2,184 @@
 #include "strings.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <conio.h>
 
-char in_string[25] = {0};
-int in_string_pos = 0;
-int string_len = 0;
-int index = 0;
+//#include<iostream>
+//#include<conio.h>
 
-int WriteData(HANDLE handle, BYTE* data, DWORD length, DWORD* dwWritten)
+HANDLE hMasterCOM;
+
+static struct
 {
-    int success = 0;
-    OVERLAPPED o = {0};
-    o.hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-    if (!WriteFile(handle, (LPCVOID)data, length, dwWritten, &o))
-    {
-        if (GetLastError() == ERROR_IO_PENDING)
-            if (WaitForSingleObject(o.hEvent, INFINITE) == WAIT_OBJECT_0)
-                if (GetOverlappedResult(handle, &o, dwWritten, FALSE))
-                    success = 1;
-    }
-    else
+    char buf[32];
+    int head;
+    int tail;
+}rx;
+
+int WriteData(HANDLE handle, BYTE* data, DWORD length, DWORD* dwWritten){
+     int success = 0;
+     OVERLAPPED o = {0};
+     o.hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+     if (!WriteFile(handle, (LPCVOID)data, length, dwWritten, &o))
+        {
+            if (GetLastError() == ERROR_IO_PENDING)
+                if (WaitForSingleObject(o.hEvent, INFINITE) == WAIT_OBJECT_0)
+                    if (GetOverlappedResult(handle, &o, dwWritten, FALSE))
+                            success = 1;
+     }
+     else
         success = 1;
-    if (*dwWritten != length)
+     if (*dwWritten != length)
         success = 0;
-    CloseHandle(o.hEvent);
-    return success;
+     CloseHandle(o.hEvent);
+     return success;
+}
+int ReadData(HANDLE handle, BYTE* data, DWORD length, DWORD* dwWritten)
+{
+     int success = 0;
+     OVERLAPPED o = {0};
+     o.hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+     if (!ReadFile(handle, (LPCVOID)data, length, dwWritten, &o))
+        {
+            if (GetLastError() == ERROR_IO_PENDING)
+                if (WaitForSingleObject(o.hEvent, INFINITE) == WAIT_OBJECT_0)
+                    if (GetOverlappedResult(handle, &o, dwWritten, FALSE))
+                            success = 1;
+     }
+     else
+        success = 1;
+     if (*dwWritten != length)
+        success = 0;
+     CloseHandle(o.hEvent);
+     return success;
 }
 
-void makeprintstring(char *str,int value)
+void createwritestring(char *str,int address,int value)
 {
-    if(value>999){
-        sprintf(str,"B999\r\n");
-    }
-    else if(value<10)
-    {
-        sprintf(str,"B00%d\r\n",value);
-    }
-    else if(value<100)
-    {
-       sprintf(str,"B0%d\r\n",value);
-    }
-    else
-    {
-        sprintf(str,"B%d\r\n",value);
-    }
+
+    sprintf(str,"W%0*d%0*d\r\n",4,address,3,value);//cval);
+    return 0;
 }
 
-void main(void)
+void createreadstring(char* str,int address)
 {
-    HANDLE hMasterCOM = CreateFile("\\\\.\\COM6",
-                                   GENERIC_READ | GENERIC_WRITE,
-                                   0,
-                                   0,
-                                   OPEN_EXISTING,
-                                   FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED,
-                                   0);
+    sprintf(str,"R%0*d\r\n",4,address);
+    return 0;
+}
+writeSPI(short address,int data)
+{
+    char junk[100];
+    char datas[10];
+    createwritestring(datas,address,data);
+    printf("%s",datas);
+    WriteData(hMasterCOM,datas,10,junk);
+    return 0;
+}
+readSPI(int address)
+{
+    char junk[100];
+    char datas[7];
+    createreadstring(datas,address);
+    WriteData(hMasterCOM,datas,7,junk);
+    return 0;
+}
+void writestrtomem(int address,int length,char* str2){
+    int i = 0;
+    for (i=0;i<length;i++)
+    {
+       writeSPI(i+address,str2[i]);
+       Sleep(1);
+       //printf("%c",str2[i]);
+       //Sleep(0.001);
+    }
+
+}
+void readstrfrommem(int address,int length,char* str)
+{
+    int i = 0;
+    for (i=0;i<length;i++)
+    {
+       readSPI(i+address);
+       //Sleep(0.001);
+    }
+    readBuffer(length,str);
+}
+void readBuffer(int len,char* str)
+{
+    int i = 0,j = 0;
+    char readdata;
+    char junk[1000];
+    do
+    {
+    ReadData(hMasterCOM,&readdata,1,junk);
+    printf("%c",readdata);
+    Sleep(1);
+        if (readdata == 'r'){
+            str[i] = 0;
+            ReadData(hMasterCOM,&readdata,1,junk);
+            printf("%c",readdata);
+            Sleep(1);
+            str[i] += (readdata-48)*100;
+            ReadData(hMasterCOM,&readdata,1,junk);
+            printf("%c",readdata);
+            Sleep(1);
+            str[i] += (readdata-48)*10;
+            ReadData(hMasterCOM,&readdata,1,junk);
+            printf("%c",readdata);
+            Sleep(1);
+            str[i] += (readdata-48);
+            i++;
+
+        }
+    }while(i<len);
+}
+
+void main(void){
+    //printf("hello world!\r\n");
+   // return 0;
+
+     hMasterCOM = CreateFile("\\\\.\\COM3",
+                                        GENERIC_READ | GENERIC_WRITE,
+                                              0,
+                                              0,
+                                              OPEN_EXISTING,
+                                              FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED,
+                                                                0);
     DCB dcbMasterInitState;
     GetCommState(hMasterCOM, &dcbMasterInitState);
     DCB dcbMaster = dcbMasterInitState;
-    dcbMaster.BaudRate = 9600;
+    dcbMaster.BaudRate = 115200;
     dcbMaster.Parity = NOPARITY;
     dcbMaster.ByteSize = 8;
     dcbMaster.StopBits = ONESTOPBIT;
     SetCommState(hMasterCOM, &dcbMaster);
 
-    int bpm = 60;
-
-    char datas[] = "B060\n\r";
     char junk[100];
+    char newline[] = " \r\n";
+    char datain[32];
+    char str[100];
+    char printedsting[] ="Test2";
+    int i = 0;
+
+
+    char readdata;
     char input;
 
-    WriteData(hMasterCOM,datas,6,junk);
+    WriteData(hMasterCOM,newline,3,junk);
 
-    printf("Enter Commands: \n");
+    writestrtomem(0,strlen(printedsting)+1,printedsting);
+
+    Sleep(10);
+
+
+    readstrfrommem(0,strlen(printedsting)+1,datain);
+
+    printf("\r\n%s",datain);
+
     while(1)
     {
-        input = getch();        // Get the input character
-        printf("%c", input);    // Print input back to user
-        string_len = strlen(in_string);     // Get string length
-
-
-        if (input == 13)        // User has hit enter (carriage return encountered)
-        {
-            printf("\n");
-            //printf("%s\n", in_string);
-
-            in_string[in_string_pos+1] = '\r';  //String formatting
-            in_string[in_string_pos+2] = '\n';
-
-                                                // Send string through COM port
-            WriteData(hMasterCOM,in_string,string_len+2,junk);
-
-            in_string_pos = 0;                  // Reset string position
-            for(index = 0; index < 24; index++) // Clear the string
-                {
-                in_string[index] = 0;
-                }
-        }
-        //else if ((input >= 65)&(input <= 90))
-        else
-        {
-            in_string[in_string_pos] = input;   // Add input character to string
-            in_string_pos++;                    // Increment string position index
-        }
+        //ReadData(hMasterCOM,&readdata,1,junk);
+        //printf("%c",readdata);
+        //Sleep(1);
     }
 
     return 0;
