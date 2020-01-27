@@ -88,7 +88,7 @@ void InitSPI( void )
     EUSCI_B2->IE |= BIT0;           // Enable interrupt
     NVIC_EnableIRQ(EUSCIB2_IRQn);   // Enable handler in NVIC
 
-    DebugPrint("SPI 'online'\r\n");
+    //DebugPrint("SPI 'online'\r\n");
     P5->OUT |= BIT2;
     sendSPI(status,5,0);            // Read device ID (FRAM opcode)
     sendSPI(&enable,1,0);           // Set write enable latch (FRAM opcode)

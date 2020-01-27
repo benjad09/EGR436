@@ -36,13 +36,33 @@ extern void PrintHEX( const char *str, uint16_t val );
 extern void PrintHEXL( const char *str, uint16_t val );
 
 void HandleDebug( void );
+extern uint8_t stringcompare(char *str1 ,char *str2,uint8_t length);
 
 
 
 #define TX_BUF_N          256
-#define RX_BUF_N          64
-#define MAX_STRING        64
-#define MAX_PARSE_BYTES   64
+#define RX_BUF_N          256
+#define MAX_STRING        256
+#define MAX_PARSE_BYTES   256
+
+
+#define STORE "STORE"
+#define STORE_L 5
+
+#define DIRECT "DIR"
+#define DIRECT_L 3
+
+#define SIZE "MEM"
+#define SIZE_L 3
+
+#define DELETE "DELETE"
+#define DELETE_L 6
+
+#define READ "READ"
+#define READ_L 4
+
+#define CLEAR "CLEAR"
+#define CLEAR_L 5
 
 
 

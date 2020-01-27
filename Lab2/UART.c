@@ -125,7 +125,8 @@ void EUSCIA0_IRQHandler(void)
             {
                 com.rx.buf[com.rx.head] = EUSCI_A0->RXBUF; // store the new piece of data at the present location in the buffer
                 //EUSCI_A0->IFG &= ~BIT0;
-                if (++com.rx.head >= RX_BUF_N)
+                com.rx.head++;
+                if (com.rx.head >= RX_BUF_N)
                 {
                     com.rx.head = 0;
                 }
@@ -541,6 +542,19 @@ void PrintHEXL( const char *str, uint16_t val )
     }
 }
 
+uint8_t stringcompare(char *str1 ,char *str2,uint8_t length)
+{
+    uint8_t i = 0;
+    for(i=0;i<length;i++)
+    {
+        if(str1[i]!=str2[i])
+        {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 void HandleDebug( void )
 {
     static char buf[16];
@@ -563,6 +577,10 @@ void HandleDebug( void )
         //    head = 0;
         //}
 
+    if (25 == buf[head-1])
+    {
+        DebugPrint("end of file\r\n");
+    }
     if ((head < MAX_PARSE_BYTES) && ('\n' != buf[head-1]) && ('\r' != buf[head-1]))
     {
       sendString( &buf[head-1], 1 );
@@ -570,25 +588,50 @@ void HandleDebug( void )
     else
     { //Buffer is full or got a newline/CR: check for meaningful messages
             DebugPrint( "\r\n" );
-            sendString( &buf[head-1], 1 );
-            //setbpm((buf[1]-48)*100+(buf[2]-48)*10+(buf[3]-48));
-            switch (buf[0])
+            if(stringcompare(buf,STORE,STORE_L))
             {
-            case 'B':
-                setbpm((buf[1]-48)*100+(buf[2]-48)*10+(buf[3]-48));
-                break;
-            case 0x57://'W'
-                writedata((buf[1]-48)*1000+(buf[2]-48)*100+(buf[3]-48)*10+(buf[4]-48),(buf[5]-48)*100+(buf[6]-48)*10+(buf[7]-48));
-                //writedata((buf[1]<<8)&buf[2],buf[3])
-                DebugPrint("OK\r\n");
-                break;
-            case 0x52://'R'
-                readdata((buf[1]-48)*1000+(buf[2]-48)*100+(buf[3]-48)*10+(buf[4]-48));
-                DebugPrint("OK\r\n");
-                //readdata((buf[1]<<8)&buf[2])
-                break;
-            default:
-                break;
+                DebugPrint("Storing\r\n");
+            }
+            else if(stringcompare(buf,DIRECT,DIRECT_L))
+            {
+                DebugPrint("Directory\r\n");
+            }
+            else if(stringcompare(buf,SIZE,SIZE_L))
+            {
+                DebugPrint("MemSize\r\n");
+            }
+            else if(stringcompare(buf,DELETE,DELETE_L))
+            {
+                DebugPrint("DELETING\r\n");
+            }
+            else if(stringcompare(buf,READ,READ_L))
+            {
+                DebugPrint("READING\r\n");
+            }
+            else if(stringcompare(buf,CLEAR,CLEAR_L))
+            {
+                DebugPrint("READING\r\n");
+            }
+
+
+
+
+            else
+            {
+                switch (buf[0])
+                {
+                case 'B':
+                    setbpm((buf[1]-48)*100+(buf[2]-48)*10+(buf[3]-48));
+                    break;
+                case 0x57://'W'
+                    writedata((buf[1]-48)*1000+(buf[2]-48)*100+(buf[3]-48)*10+(buf[4]-48),(buf[5]-48)*100+(buf[6]-48)*10+(buf[7]-48));
+                    break;
+                case 0x52://'R'
+                    readdata((buf[1]-48)*1000+(buf[2]-48)*100+(buf[3]-48)*10+(buf[4]-48));
+                    break;
+                default:
+                    break;
+                }
             }
 
             head = 0;

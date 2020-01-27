@@ -21,8 +21,9 @@ void main(void)
     InitSPI();
     __enable_irq();//enable interrupts
     __enable_interrupts();
+    DebugPrint("VERSION:1\r\n");
 
-    DebugPrint("hello world\r\n");
+
 
 
     while(1)
