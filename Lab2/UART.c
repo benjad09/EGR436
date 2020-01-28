@@ -575,7 +575,7 @@ void HandleDebug( void )
         if(GetUpTime()>Timeout)
         {
             direct = 0;
-            DebugPrint("write timeout");
+            DebugPrint("\r\nwrite timeout\r\n");
             PrintDIR();
             WriteDIR();
         }
