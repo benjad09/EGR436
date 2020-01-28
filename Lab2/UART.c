@@ -10,6 +10,8 @@
 #include "mySPI.h"
 #include "APP.h"
 #include "msp.h"
+#include "FRAM.h"
+#include "Timer.h"
 
 
 
@@ -557,7 +559,9 @@ uint8_t stringcompare(char *str1 ,char *str2,uint8_t length)
 
 void HandleDebug( void )
 {
-    static char buf[16];
+    static char buf[MAX_PARSE_BYTES];
+    static uint64_t Timeout;
+    static uint8_t direct = 0;
     static uint8_t head=0;
     char recivebuf[16];
     uint8_t revLen = reciveString(recivebuf);
@@ -566,11 +570,34 @@ void HandleDebug( void )
     //    PrintUs("\r\n",revLen);
     //}
     int i = 0;
+    if (direct)
+    {
+        if(GetUpTime()>Timeout)
+        {
+            direct = 0;
+            DebugPrint("write timeout");
+            PrintDIR();
+            WriteDIR();
+        }
+        else
+        {
+            if(revLen)
+            {
+                Timeout =  GetUpTime()+50;
+            }
+            for(i = 0;i<revLen;i++)
+            {
+                DIRECTWRITEFRAM(recivebuf[i]);
+                sendString( &recivebuf[i], 1 );
+            }
+        }
+    }
+    else
+    {
     for(i = 0;i<revLen;i++)
     {
-        P1->OUT ^= BIT0;
 
-        buf[head++]=recivebuf[i];
+    buf[head++]=recivebuf[i];
 
         //if(head >= 16)
         //{
@@ -591,26 +618,38 @@ void HandleDebug( void )
             if(stringcompare(buf,STORE,STORE_L))
             {
                 DebugPrint("Storing\r\n");
+                PrintUs("STRINGLEN: ",head-7);
+                DebugPrint("\r\n");
+                Create_NewEntry(buf,head-8);
+                Timeout =  GetUpTime()+10000;
+                direct = 1;
+
             }
             else if(stringcompare(buf,DIRECT,DIRECT_L))
             {
                 DebugPrint("Directory\r\n");
+                PrintDIR();
             }
             else if(stringcompare(buf,SIZE,SIZE_L))
             {
                 DebugPrint("MemSize\r\n");
+                PrintTotalSize();
             }
             else if(stringcompare(buf,DELETE,DELETE_L))
             {
                 DebugPrint("DELETING\r\n");
+                DeleteEntry(buf[7]-48);
             }
             else if(stringcompare(buf,READ,READ_L))
             {
                 DebugPrint("READING\r\n");
+                StartRead(buf[5]-48);
+                //StartRead(1);
             }
             else if(stringcompare(buf,CLEAR,CLEAR_L))
             {
-                DebugPrint("READING\r\n");
+                DebugPrint("Clearing\r\n");
+                ClearFRAM();
             }
 
 
@@ -637,6 +676,7 @@ void HandleDebug( void )
             head = 0;
         }
 
+    }
     }
 
 }

@@ -40,7 +40,7 @@ extern uint8_t stringcompare(char *str1 ,char *str2,uint8_t length);
 
 
 
-#define TX_BUF_N          256
+#define TX_BUF_N          1024
 #define RX_BUF_N          256
 #define MAX_STRING        256
 #define MAX_PARSE_BYTES   256

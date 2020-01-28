@@ -15,43 +15,92 @@ static struct
     int tail;
 }rx;
 
-int WriteData(HANDLE handle, BYTE* data, DWORD length, DWORD* dwWritten){
-     int success = 0;
-     OVERLAPPED o = {0};
-     o.hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-     if (!WriteFile(handle, (LPCVOID)data, length, dwWritten, &o))
-        {
-            if (GetLastError() == ERROR_IO_PENDING)
-                if (WaitForSingleObject(o.hEvent, INFINITE) == WAIT_OBJECT_0)
-                    if (GetOverlappedResult(handle, &o, dwWritten, FALSE))
-                            success = 1;
-     }
-     else
-        success = 1;
-     if (*dwWritten != length)
-        success = 0;
-     CloseHandle(o.hEvent);
-     return success;
-}
-int ReadData(HANDLE handle, BYTE* data, DWORD length, DWORD* dwWritten)
+void WriteUART(char* str,DWORD length)
 {
-     int success = 0;
-     OVERLAPPED o = {0};
-     o.hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-     if (!ReadFile(handle, (LPCVOID)data, length, dwWritten, &o))
-        {
-            if (GetLastError() == ERROR_IO_PENDING)
-                if (WaitForSingleObject(o.hEvent, INFINITE) == WAIT_OBJECT_0)
-                    if (GetOverlappedResult(handle, &o, dwWritten, FALSE))
-                            success = 1;
-     }
-     else
-        success = 1;
-     if (*dwWritten != length)
-        success = 0;
-     CloseHandle(o.hEvent);
-     return success;
+    Sleep(10);
+    OVERLAPPED o = {0};
+    //.o.hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+    DWORD written = 0;
+    WriteFile(hMasterCOM,(LPCVOID)str,length,written,&o);
+    //while (written != length)
+    //{
+    //     printf("%d\r\n",written);
+
+    //}
+
+
 }
+void ReadUART(char* str,DWORD length)
+{
+    Sleep(10);
+    OVERLAPPED o = {0};
+    //.o.hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+    DWORD written = 0;
+    ReadFile(hMasterCOM,(LPCVOID)str,length,written,&o);
+
+//char TempChar; //Temporary character used for reading
+//char SerialBuffer[256];//Buffer for storing Rxed Data
+//DWORD NoBytesRead;
+//int i = 0;
+////do
+// //{
+//   ReadFile( hMasterCOM,           //Handle of the Serial port
+//             &TempChar,       //Temporary character
+//             sizeof(TempChar),//Size of TempChar
+//             &NoBytesRead,    //Number of bytes read
+//             NULL);
+//
+//   str[i] = TempChar;// Store Tempchar into buffer
+//   i++;
+//  //}
+////while (NoBytesRead > 0);
+}
+
+//int WriteData(HANDLE handle, BYTE* data, DWORD length, DWORD* dwWritten){
+//    OVERLAPPED o = {0};
+//    WriteFile(handle, (LPCVOID)data, length, dwWritten, &o);
+//    Sleep(1);
+//    return 1;
+//     int success = 0;
+////     OVERLAPPED o = {0};
+//     o.hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+//     if (!WriteFile(handle, (LPCVOID)data, length, dwWritten, &o))
+//        {
+//            if (GetLastError() == ERROR_IO_PENDING)
+//                if (WaitForSingleObject(o.hEvent, INFINITE) == WAIT_OBJECT_0)
+//                    if (GetOverlappedResult(handle, &o, dwWritten, FALSE))
+//                            success = 1;
+//     }
+//     else
+//        success = 1;
+//     if (*dwWritten != length)
+//        success = 0;
+//     CloseHandle(o.hEvent);
+//     return success;
+//}
+
+
+//int ReadData(HANDLE handle, BYTE* data, DWORD length, DWORD* dwWritten)
+//{
+//     int success = 0;
+//     OVERLAPPED o = {0};
+//     ReadFile(handle, (LPCVOID)data, length, dwWritten, &o);
+//     return 1;
+//     o.hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+//     if (!ReadFile(handle, (LPCVOID)data, length, dwWritten, &o))
+//        {
+//            if (GetLastError() == ERROR_IO_PENDING)
+//                if (WaitForSingleObject(o.hEvent, INFINITE) == WAIT_OBJECT_0)
+//                    if (GetOverlappedResult(handle, &o, dwWritten, FALSE))
+//                            success = 1;
+//     }
+//     else
+//        success = 1;
+//     if (*dwWritten != length)
+//        success = 0;
+//     CloseHandle(o.hEvent);
+//     return success;
+//}
 
 void createwritestring(char *str,int address,int value)
 {
@@ -71,7 +120,7 @@ writeSPI(short address,int data)
     char datas[10];
     createwritestring(datas,address,data);
     printf("%s",datas);
-    WriteData(hMasterCOM,datas,10,junk);
+    WriteUART(datas,10);
     return 0;
 }
 readSPI(int address)
@@ -79,7 +128,7 @@ readSPI(int address)
     char junk[100];
     char datas[7];
     createreadstring(datas,address);
-    WriteData(hMasterCOM,datas,7,junk);
+    WriteUART(datas,7);
     return 0;
 }
 void writestrtomem(int address,int length,char* str2){
@@ -110,22 +159,22 @@ void readBuffer(int len,char* str)
     char junk[1000];
     do
     {
-    ReadData(hMasterCOM,&readdata,1,junk);
+    ReadUART(&readdata,1);
     printf("%c",readdata);
-    Sleep(1);
+    Sleep(10);
         if (readdata == 'r'){
             str[i] = 0;
-            ReadData(hMasterCOM,&readdata,1,junk);
+            ReadUART(&readdata,1);
             printf("%c",readdata);
-            Sleep(1);
+            //Sleep(10);
             str[i] += (readdata-48)*100;
-            ReadData(hMasterCOM,&readdata,1,junk);
+            ReadUART(&readdata,1);
             printf("%c",readdata);
-            Sleep(1);
+            //Sleep(10);
             str[i] += (readdata-48)*10;
-            ReadData(hMasterCOM,&readdata,1,junk);
+            ReadUART(&readdata,1);
             printf("%c",readdata);
-            Sleep(1);
+            //Sleep(10);
             str[i] += (readdata-48);
             i++;
 
@@ -159,19 +208,19 @@ void main(void){
     char str[100];
     char printedsting[] ="Test2";
     int i = 0;
-
+    WriteUART("Hello",5);
 
     char readdata;
     char input;
 
-    WriteData(hMasterCOM,newline,3,junk);
+    WriteUART(newline,3);
 
-    writestrtomem(0,strlen(printedsting)+1,printedsting);
+    writestrtomem(0,6,printedsting);
 
-    Sleep(10);
+    Sleep(1000);
 
 
-    readstrfrommem(0,strlen(printedsting)+1,datain);
+    readstrfrommem(0,6,datain);
 
     printf("\r\n%s",datain);
 
@@ -179,7 +228,8 @@ void main(void){
     {
         //ReadData(hMasterCOM,&readdata,1,junk);
         //printf("%c",readdata);
-        //Sleep(1);
+        //Sleep(1000);
+        //printf("1sec\n");
     }
 
     return 0;

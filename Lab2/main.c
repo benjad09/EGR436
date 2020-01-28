@@ -3,6 +3,7 @@
 #include "mySPI.h"
 #include "Timer.h"
 #include "App.h"
+#include "FRAM.h"
 
 
 /**
@@ -19,12 +20,10 @@ void main(void)
     Init_SYSTICK();
     InitApp();
     InitSPI();
+    InitFRAM();
     __enable_irq();//enable interrupts
     __enable_interrupts();
     DebugPrint("VERSION:1\r\n");
-
-
-
 
     while(1)
     {
@@ -32,5 +31,6 @@ void main(void)
         HandleDebug();
         HandleApp();
         HandleSPI();
+        HandleFRAM();
     }
 }
