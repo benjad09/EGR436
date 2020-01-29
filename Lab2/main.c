@@ -14,20 +14,20 @@ uint16_t bpm;
 
 void main(void)
 {
-    WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD;     // stop watchdog timer
+    WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD;     // Stop watchdog timer
 
-    InitComms();
+    InitComms();                    // Initializations
     Init_SYSTICK();
     InitApp();
     InitSPI();
     InitFRAM();
-    __enable_irq();//enable interrupts
+    __enable_irq();
     __enable_interrupts();
     DebugPrint("VERSION:1\r\n");
 
     while(1)
     {
-        HandleComms();
+        HandleComms();              // Call various modules
         HandleDebug();
         HandleApp();
         HandleSPI();

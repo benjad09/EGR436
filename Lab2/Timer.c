@@ -9,7 +9,7 @@
 
 uint64_t uptime;
 
-void Init_SYSTICK(void)
+void Init_SYSTICK(void)     // Configure SysTick timer
 {
     SysTick->CTRL = 0;
     SysTick->LOAD = 3000;
@@ -18,12 +18,12 @@ void Init_SYSTICK(void)
     uptime = 0;
 }
 
-void SysTick_Handler(void)
+void SysTick_Handler(void)  // SysTick timer interrupt handler
 {
-    uptime++;
+    uptime++;                       // Increment time variable
 }
 
-uint64_t GetUpTime(void)
+uint64_t GetUpTime(void)    // Retreive time variable
 {
  uint64_t temp1,temp2;
  do

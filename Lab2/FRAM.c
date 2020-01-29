@@ -23,7 +23,6 @@ static struct
     framstate_t  state;
 }mem;
 
-
 static struct
 {
     uint16_t size;
@@ -41,16 +40,17 @@ static struct
 static void FRAMFSM(void);
 static void ReadDIR(void);
 
-
-void InitFRAM(void)
+void InitFRAM(void)         // Set initial FSM state and read FRAM directory
 {
     mem.state = FR_IDLE;
     ReadDIR();
 }
-void HandleFRAM(void)
+
+void HandleFRAM(void)       // Drive the FRAM FSM
 {
     FRAMFSM();
 }
+                            // Write file name with memory location and length
 void writename(char* NAME,uint8_t entry,uint8_t len)
 {
     int16_t j = 0;
@@ -67,10 +67,9 @@ void writename(char* NAME,uint8_t entry,uint8_t len)
     }
 }
 
-void ClearFRAM()
+void ClearFRAM()            // Clear FRAM by clearing pointers
 {
     int16_t i;
-    //mem.state = FR_CLEAR;
     mem.address = 0;
     mem.entry = 0;
     char defNAME[] = DEFAULT_NAME;
@@ -79,27 +78,26 @@ void ClearFRAM()
         entries[i].address = 0;
         entries[i].length = 0;
         writename(defNAME,i,DEFAULT_NAME_L);
-
     }
     WriteDIR();
-
 }
-void WriteDIR(void)
+
+void WriteDIR(void)         // Write table of contents to FRAM
 {
     mem.entry = 0;
     mem.address = 0;
     mem.state = FR_WRITEDIR;
-    //ReadDIR();
 }
-void ReadDIR(void)
+
+void ReadDIR(void)          // Read table of contents from FRAM
 {
     mem.entry = 0;
     mem.address = 0;
     mem.state = FR_READDIR;
 }
-void PrintDIR(void)
-{
 
+void PrintDIR(void)         // Print table of contents to UART
+{
     uint8_t i;
     for(i = 0;i<ENTRIES_N;i++)
     {
@@ -110,6 +108,7 @@ void PrintDIR(void)
     }
     ReadDIR();
 }
+                            // Create new data entry
 void Create_NewEntry(char* str,uint8_t len)
 {
     uint16_t i;
@@ -122,19 +121,14 @@ void Create_NewEntry(char* str,uint8_t len)
     }
     entries[mem.selected].length = 0;
     WriteDIR();
-    //mem.address = entries[mem.selected].address;
 }
+                            // Write to FRAM
 void DIRECTWRITEFRAM(char data)
 {
     writedata(mem.address++,data);
     entries[mem.selected].length += 1;
-    //PrintHEXL("A: ",mem.address);
-    //DebugPrint("\r\n");
-    //PrintHEX(" E: ",mem.selected);
-    //PrintHEX(" L: ",entries[mem.selected].length);
-    //DebugPrint("!\r\n");
 }
-
+                            // Initiate a read from FRAM
 void StartRead(uint8_t instance)
 {
     mem.selected = instance;
@@ -144,6 +138,7 @@ void StartRead(uint8_t instance)
     readdata(mem.address++);
     mem.state = FR_READ;
 }
+                            // Delete an entry from FRAM
 void DeleteEntry(uint8_t instance)
 {
     uint8_t i = 0,j=0;
@@ -173,54 +168,34 @@ void DeleteEntry(uint8_t instance)
     readdata(mem.address++);
     mem.state = FR_DELETE;
 }
-
-
-
-
+                            // Print size of stored data
 void PrintTotalSize(void)
 {
     PrintHEXL("Total size: ",mem.totalsize);
     DebugPrint("\r\n");
 }
-
-
+                            // FRAM FSM (state machine)
 void FRAMFSM()
 {
     char incoming[BLOCKSIZE];
     uint16_t i = 0;
     switch(mem.state){
-    case FR_IDLE:
+    case FR_IDLE:           // Idle state
         break;
-    case FR_CLEAR:
+    case FR_CLEAR:          // Clear FRAM state
         if(!SPIbusy())
         {
-//            blockdelay = GetUpTime()+WRITEDELAY;
-//            if(mem.address < MAX_ADDRESS)
-//            {
-//            for (i = 0;i<BLOCKSIZE;i++)
-//            {
-//            writedata(mem.address++,0);
-//            }
-//            }
-//            else
-//            {
-                //WriteDIR();
-//            }
-
+            mem.state = FR_IDLE;
         }
         break;
-    case FR_READ:
+    case FR_READ:           // Read from FRAM state
         if(!SPIbusy())
           {
             reciveSPI(incoming);
             sendString(&incoming[0],1);
-            //PrintHEXL("A: ",mem.address);
-            //DebugPrint("\r\n");
-
 
            if(mem.address < (entries[mem.selected].address+entries[mem.selected].length))
            {
-
                readdata(mem.address++);
            }
            else
@@ -231,30 +206,24 @@ void FRAMFSM()
            }
           }
         break;
-    case FR_DELETE:
+    case FR_DELETE:         // Delete from FRAM state
         if(!SPIbusy())
           {
             reciveSPI(incoming);
-            //sendString(&incoming[0],1);
-            //PrintHEXL("A: ",mem.address);
-            //DebugPrint("\r\n");
             writedata(mem.address-del.size-1,incoming[0]);
-
 
            if(mem.address < MAX_ADDRESS)
            {
-
                readdata(mem.address++);
            }
            else
            {
                WriteDIR();
-               //mem.state = FR_IDLE;
                DebugPrint("done!\r\n");
            }
           }
         break;
-    case FR_WRITEDIR:
+    case FR_WRITEDIR:       // Write table of contents to FRAM state
         if(!SPIbusy())
         {
             for (i = 0;i<BLOCKSIZE;i++)
@@ -283,16 +252,14 @@ void FRAMFSM()
             mem.entry++;
             if(mem.entry == ENTRIES_N)
             {
-                //mem.state = FR_IDLE;
                 mem.address = entries[mem.selected].address;
                 DebugPrint("write done!\r\n");
                 ReadDIR();
             }
-
         }
 
          break;
-    case FR_READDIR:
+    case FR_READDIR:            // Read table of contents state
         if(!SPIbusy()){
             if (mem.entry == 0)
             {
@@ -312,15 +279,12 @@ void FRAMFSM()
                     for (i = 0;i<NAME_LEN;i++)
                     {
                        entries[mem.entry-1].name[i] = incoming[i];
-                       //PrintHEX("SPI->",incoming[i]);
-                       //DebugPrint("\r\n");
                     }
 
-                    entries[mem.entry-1].address = (incoming[28])<<8;//(uint16_t)((uint16_t)incoming[28]<<8+(uint16_t)incoming[29]);
+                    entries[mem.entry-1].address = (incoming[28])<<8;
                     entries[mem.entry-1].address += incoming[29];
                     entries[mem.entry-1].length = (incoming[30])<<8;
                     entries[mem.entry-1].length += incoming[31];
-                    //PrintHEXL("",entries[mem.entry-1].address );
                     if(mem.entry < ENTRIES_N)
                     {
                         for (i = 0;i<BLOCKSIZE;i++)

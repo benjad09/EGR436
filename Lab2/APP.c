@@ -11,20 +11,15 @@
 
 uint16_t bpm;
 
-
-void InitApp(void)
+void InitApp(void)          // Not used
 {
-
 }
 
-void HandleApp(void)
+void HandleApp(void)        // Not used
 {
-
 }
 
-void setbpm(uint16_t val)
+void setbpm(uint16_t val)   // Not used
 {
     bpm = val;
 }
-
-

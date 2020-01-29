@@ -13,23 +13,21 @@
 #include "FRAM.h"
 #include "Timer.h"
 
-
-
 static struct
 {
-  struct
+  struct                    // Receive buffer management
   {
     uint32_t head;
     uint32_t tail;
     char buf[RX_BUF_N];
   } rx;
-  struct
+  struct                    // Transmit buffer management
   {
     uint32_t head;
     uint32_t tail;
     char buf[TX_BUF_N];
   } tx;
-  struct
+  struct                    // Data parsing management
   {
     uint8_t nBytes;
     char buf[MAX_PARSE_BYTES];
@@ -40,11 +38,8 @@ static struct
 static void UpdateRxTx( void );
 static void ParseRxData( void );
 
-
-void InitComms( void )
+void InitComms( void )          // Initiate UART communications
 {
-
-
     com.rx.head = 0;
     com.rx.tail = 0;
     com.tx.head = 0;
@@ -54,21 +49,10 @@ void InitComms( void )
     P1->SEL0 |=  (BIT2 | BIT3); // P1.2 and P1.3 are EUSCI_A0 RX
     P1->SEL1 &= ~(BIT2 | BIT3); // and TX respectively.
 
-
-    // Baud Rate Configuration
-    // 3000000/(16*9600) = 19.531  (3 MHz at 9600 bps is fast enough to turn on over sampling (UCOS = /16))
-    //UCOS16 = 1;   //(0ver sampling, /16 turned on)
-    //UCBR  = 19 ;  //(Whole portion of the divide)
-    //UCBRF = 8.5;  // .53125 * 16 (0x0A) (Remainder of the divide)
-    //UCBRS = 0xAA; //remainder=0.531 (look up table 22-4)
     EUSCI_A0->CTLW0 = 0x00C1;
     EUSCI_A0->BRW = 26;
     EUSCI_A0->MCTLW &= ~0xFFF1;
     EUSCI_A0->MCTLW = 0;
-    //EUSCI_A0->BRW = 19;  // UCBR Value from above
-    //EUSCI_A0->MCTLW = 0xAA81; //UCBRS (Bits 15-8) & UCBRF (Bits 7-4) & UCOS16 (Bit 0)
-
-
 
     EUSCI_A0->CTLW0 &= ~BIT0;  // Enable EUSCI
     EUSCI_A0->IFG &= ~BIT0;    // Clear interrupt
@@ -76,21 +60,19 @@ void InitComms( void )
     NVIC_EnableIRQ(EUSCIA0_IRQn);
 }
 
-void HandleComms( void )
+void HandleComms( void )       // Handle UART communication
 {
   UpdateRxTx();     //Check status of transmit and receive UART
-
   ParseRxData();    //See if we received any messages
 }
 
-void ParseRxData( void )
+void ParseRxData( void )       // Parse received data
 {
     char newByte = 'a';
 
     while (com.rx.head != com.rx.tail)
     {
          newByte = com.rx.buf[com.rx.tail++];
-         //sendString(&newByte,1);
 
         if (com.rx.tail > RX_BUF_N)
         {
@@ -105,9 +87,8 @@ void ParseRxData( void )
             com.parse.nBytes = 0;
         }
     }
-
 }
-
+                        // Receive a string from UART
 uint8_t reciveString(char *str){
     int j=0;
     for(j=0;j<com.parse.nBytes;j++)
@@ -118,34 +99,20 @@ uint8_t reciveString(char *str){
     com.parse.nBytes = 0;
     return temp;
 }
-
-
-
+                        // UART interrupt handler
 void EUSCIA0_IRQHandler(void)
 {
             do
             {
                 com.rx.buf[com.rx.head] = EUSCI_A0->RXBUF; // store the new piece of data at the present location in the buffer
-                //EUSCI_A0->IFG &= ~BIT0;
                 com.rx.head++;
                 if (com.rx.head >= RX_BUF_N)
                 {
                     com.rx.head = 0;
                 }
             }while(EUSCI_A0->IFG & BIT0);
-
-
-        //}while(bytein);
-
-    //}
 }
-
-
-
-
-//HAL_UART_ErrorCallback
-
-//Queue up a string "str" of n characters to transmit: send from main loop
+                    //Queue up a string "str" of n characters to transmit: send from main loop
 void sendString( char *str, uint32_t n)
 {
     uint32_t j=0;
@@ -158,13 +125,9 @@ void sendString( char *str, uint32_t n)
     }
   }
 }
-
+                    // Update receive/transmit buffer management
 static void UpdateRxTx( void )
 {
-
-
-
-
     if(com.tx.head != com.tx.tail)
     {
         if((EUSCI_A0->IFG & BIT1))
@@ -177,11 +140,8 @@ static void UpdateRxTx( void )
             }
         }
     }
-
-
-
 }
-
+                    // Data conversion function
 static void usitoa4( uint16_t val, char *str )
 {
     uint16_t pow;
@@ -196,7 +156,6 @@ static void usitoa4( uint16_t val, char *str )
         }
         return;
     }
-
     //Load padding characters into output
     for (i=0; i<4; i++)
     {
@@ -293,6 +252,7 @@ static void usitoa5( uint16_t val, char *str )
         }
     }
 }
+                // Data conversion function
 static void usitoa2h( uint16_t val, char *str )
 {
     uint16_t pow;
@@ -333,10 +293,9 @@ static void usitoa2h( uint16_t val, char *str )
                 {
                     str[i] += 39;
                 }
-
     }
 }
-
+                    // Data conversion function
 static void usitoa3h( uint16_t val, char *str )
 {
     uint16_t pow;
@@ -380,7 +339,6 @@ static void usitoa3h( uint16_t val, char *str )
                 {
                     str[i] += 39;
                 }
-
     }
 }
 //Function: DebugPrint
@@ -472,7 +430,6 @@ void PrintI( const char *str, int16_t val )
   sendString( valStr, sizeof(valStr)-1);   //Don't send null termination
 }
 
-
 //Function: PrintIs
 //Inputs:   char *str - pointer to data to send; must be null-terminated
 //          INT16 val - value to be printed
@@ -508,6 +465,8 @@ void PrintIs( const char *str, int16_t val )
   }
   sendString( valStr, sizeof(valStr)-1);   //Don't send null termination
 }
+
+                        // Print decimal to debug UART
 void PrintDEC(const char *str, uint32_t val)
 {
     uint32_t temp = val/1000;
@@ -518,7 +477,7 @@ void PrintDEC(const char *str, uint32_t val)
     temp = (val%1000);
     PrintUs("",temp);
 }
-
+                        // Print hexidecimal to debug UART
 void PrintHEX( const char *str, uint16_t val )
 {
   char valStr[] = "00";
@@ -527,7 +486,7 @@ void PrintHEX( const char *str, uint16_t val )
   usitoa2h( val, valStr );
   sendString( valStr, 2 );  //Don't send null termination
 }
-
+                        // Print long hexadecimal to debug UART
 void PrintHEXL( const char *str, uint16_t val )
 {
   char valStr[] = "000";
@@ -543,7 +502,7 @@ void PrintHEXL( const char *str, uint16_t val )
         DebugPrint("xxx");
     }
 }
-
+                        // Compare two strings
 uint8_t stringcompare(char *str1 ,char *str2,uint8_t length)
 {
     uint8_t i = 0;
@@ -556,7 +515,7 @@ uint8_t stringcompare(char *str1 ,char *str2,uint8_t length)
     }
     return 1;
 }
-
+                        // Handle UART debug, handle input commands
 void HandleDebug( void )
 {
     static char buf[MAX_PARSE_BYTES];
@@ -565,10 +524,7 @@ void HandleDebug( void )
     static uint8_t head=0;
     char recivebuf[16];
     uint8_t revLen = reciveString(recivebuf);
-    //if (revLen>0)
-    //{
-    //    PrintUs("\r\n",revLen);
-    //}
+
     int i = 0;
     if (direct)
     {
@@ -599,11 +555,6 @@ void HandleDebug( void )
 
     buf[head++]=recivebuf[i];
 
-        //if(head >= 16)
-        //{
-        //    head = 0;
-        //}
-
     if (25 == buf[head-1])
     {
         DebugPrint("end of file\r\n");
@@ -625,7 +576,7 @@ void HandleDebug( void )
                 direct = 1;
 
             }
-            else if(stringcompare(buf,DIRECT,DIRECT_L))
+            else if(stringcompare(buf,DIRECT,DIRECT_L))     // Handle commands
             {
                 DebugPrint("Directory\r\n");
                 PrintDIR();
@@ -644,16 +595,12 @@ void HandleDebug( void )
             {
                 DebugPrint("READING\r\n");
                 StartRead(buf[5]-48);
-                //StartRead(1);
             }
             else if(stringcompare(buf,CLEAR,CLEAR_L))
             {
                 DebugPrint("Clearing\r\n");
                 ClearFRAM();
             }
-
-
-
 
             else
             {
@@ -672,13 +619,8 @@ void HandleDebug( void )
                     break;
                 }
             }
-
             head = 0;
         }
-
     }
     }
-
 }
-
-

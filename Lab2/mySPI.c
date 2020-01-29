@@ -52,8 +52,6 @@ char status[5] = {0x9f,0x00,0x00,0x00,0x00};
 char read[2] = {0x05,0x00};
 char enable = 0x06;
 
-
-
 // Initiate SPI communications
 void InitSPI( void )
 {
@@ -114,29 +112,10 @@ void HandleSPI( void )
     ParseRxData();
 }
 
-
 // Parse received data; handle SPI buffer appropriately
 void ParseRxData( void )
 {
     char newByte = 'a';
-
-//    while (SPI.rx.head != SPI.rx.tail)
-//    {
-//         newByte = SPI.rx.buf[SPI.rx.tail++];
-//
-//        if (SPI.rx.tail > RX_BUF_N)
-//        {
-//            SPI.rx.tail = 0;
-//        }
-//        if ((SPI.parse.nBytes < MAX_PARSE_BYTES))
-//        {
-//            SPI.parse.buf[SPI.parse.nBytes++] = newByte;
-//        }
-//        else
-//        {   //Buffer is full or got a newline/CR: check for meaningful messages
-//            SPI.parse.nBytes = 0;
-//        }
-//    }
 }
 
 // Write data to SPI
@@ -239,7 +218,7 @@ static void sendSPI(char *str, uint32_t n,uint8_t read)
       }
   }
 }
-
+            // Update transmit/receive buffers
 static void UpdateRxTxSPI( void )
 {
     uint64_t commandbreak = 0;
